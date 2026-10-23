@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClubSoft - Sistema de Gestión de Clubes</title>
+  <!-- Tipografía Moderna 2026 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Librería SheetJS para importar/exportar archivos Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <!-- Librería para exportar a PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- PANTALLA DE INICIO DE SESIÓN MODERN 2026 -->
+  <div id="login-screen" class="login-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-wrapper">
+          <div class="login-logo">CS</div>
+        </div>
+        <h2>ClubSoft</h2>
+        <p>Gestión Deportiva Inteligente</p>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-user">Usuario</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <input type="text" id="login-user" placeholder="Ej: user" autocomplete="off" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-pass">Contraseña</label>
+          <div class="input-wrapper">
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <input type="password" id="login-pass" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div id="login-error" class="login-error" style="display: none;">
+          <span>Usuario o contraseña incorrectos.</span>
+        </div>
+
+        <button type="submit" class="btn btn-login-submit">
+          <span>Ingresar a la plataforma</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+
+      <footer class="login-footer">
+        <p>© 2026 ClubSoft - Todos los derechos reservados ClubSoft</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL -->
+  <div id="app-screen" style="display: none;">
+
+    <header class="navbar">
+      <div class="navbar-left">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menú">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="logo-container">
+          <div class="logo-placeholder">CS</div>
+          <h1>ClubSoft</h1>
+        </div>
+      </div>
+      <div class="navbar-right">
+        <span class="club-badge" id="nombre-club-actual">Club Atlético Universal</span>
+        <button class="btn btn-logout" id="btn-logout">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Menú Principal</h2>
+        <button class="close-btn" id="close-btn">&times;</button>
+      </div>
+      <nav class="sidebar-menu">
+        <a href="#" class="menu-item active" data-section="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="menu-item" data-section="padron">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Padrón de Socios</span>
+        </a>
+        <a href="#" class="menu-item" data-section="cuenta-corriente">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>
+          <span>Cuenta Corriente</span>
+        </a>
+        <a href="#" class="menu-item" data-section="pagos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>Pagos y Recibos</span>
+        </a>
+        <a href="#" class="menu-item" data-section="caja">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+          <span>Caja</span>
+        </a>
+        <a href="#" class="menu-item" data-section="debitos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Generador de Débitos</span>
+        </a>
+        <a href="#" class="menu-item" data-section="configuracion">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Configuración Total</span>
+        </a>
+      </nav>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="container">
+
+      <!-- 1. DASHBOARD PRINCIPAL -->
+      <section id="sec-dashboard" class="content-section active">
+        <div class="card">
+          <h2>Dashboard Ejecutivo</h2>
+          <p class="section-desc">Métricas y KPIs del club en tiempo real.</p>
+
+          <div class="stats-grid">
+            <div class="stat-card stat-blue">
+              <h4>Socios Activos</h4>
+              <span class="stat-number" id="dash-socios-activos">0</span>
+            </div>
+            <div class="stat-card stat-red">
+              <h4>Socios Deudores</h4>
+              <span class="stat-number" id="dash-socios-deudores">0</span>
+            </div>
+            <div class="stat-card stat-green">
+              <h4>Ingresos del Mes</h4>
+              <span class="stat-number" id="dash-ingresos">$ 0</span>
+            </div>
+            <div class="stat-card stat-purple">
+              <h4>Balance en Caja</h4>
+              <span class="stat-number" id="dash-balance">$ 0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. PADRÓN DE SOCIOS -->
+      <section id="sec-padron" class="content-section">
+        <div class="section-header">
+          <h2>Padrón Completo de Socios</h2>
+          <div class="header-buttons">
+            <button class="btn btn-export" onclick="exportarPadronExcel()">Excel General</button>
+            <button class="btn btn-excel" id="btn-importar-excel">Carga Masiva (Excel)</button>
+            <button class="btn btn-primary" id="btn-nuevo-socio">+ Registrar Socio</button>
+          </div>
+        </div>
+
+        <div class="card excel-card" id="card-excel-import" style="display: none;">
+          <h3>Carga Masiva de Socios con Excel</h3>
+          <p class="section-desc">Descarga nuestra plantilla, rellénala con tus socios y súbela para clasificarlos automáticamente por categoría.</p>
+          
+          <div class="excel-actions">
+            <button class="btn btn-secondary" id="btn-descargar-plantilla">Descargar Plantilla Excel Ejemplo</button>
+            <div class="file-upload-wrapper">
+              <label for="input-excel-file" class="btn btn-success">Seleccionar Archivo Excel / CSV</label>
+              <input type="file" id="input-excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+              <span id="excel-filename" class="sub-info">Ningún archivo seleccionado</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card search-card">
+          <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="input-buscar-socio" placeholder="Buscar socio por Nombre, Cédula (CI) o N° de Socio..." autocomplete="off">
+          </div>
+        </div>
+
+        <div class="card form-card" id="card-socio-form" style="display: none;">
+          <h3 id="form-socio-titulo">Alta de Socio</h3>
+          <form id="socio-form">
+            <input type="hidden" id="socio-id-original">
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>N° Socio:</label>
+                <input type="number" id="socio-num" required>
+              </div>
+              <div class="form-group">
+                <label>Nombre y Apellido:</label>
+                <input type="text" id="socio-nombre" placeholder="Ej: Carlos Rodríguez" required>
+              </div>
+              <div class="form-group">
+                <label>Cédula de Identidad (CI):</label>
+                <input type="text" id="socio-ci" placeholder="Ej: 4.123.456-7" required>
+              </div>
+              <div class="form-group">
+                <label>Estado del Socio:</label>
+                <select id="socio-estado" required>
+                  <option value="Activo">Activo (Verde)</option>
+                  <option value="Inactivo">Inactivo (Rojo)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Fecha de Nacimiento:</label>
+                <input type="date" id="socio-fecha-nac" required>
+              </div>
+              <div class="form-group">
+                <label>Categoría:</label>
+                <select id="socio-categoria" required>
+                  <option value="U8">U8</option>
+                  <option value="U10">U10</option>
+                  <option value="U12 M">U12 M</option>
+                  <option value="U12 F">U12 F</option>
+                  <option value="U14 M">U14 M</option>
+                  <option value="U14 F">U14 F</option>
+                  <option value="U16 M">U16 M</option>
+                  <option value="U16 F">U16 F</option>
+                  <option value="U18">U18</option>
+                  <option value="U23">U23</option>
+                  <option value="MAYORES MASC">MAYORES MASC</option>
+                  <option value="MAYORES FEM">MAYORES FEM</option>
+                  <option value="SENIOR">SENIOR</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Teléfono Socio (WhatsApp):</label>
+                <input type="tel" id="socio-telefono" placeholder="Ej: 099123456" required>
+              </div>
+              <div class="form-group">
+                <label>Cobrador Asignado:</label>
+                <select id="socio-cobrador">
+                  <option value="Cobrador Secretaría">Cobrador Secretaría</option>
+                  <option value="Cobrador Zona Centro">Cobrador Zona Centro</option>
+                  <option value="Débito Automático">Débito Automático</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Vencimiento Ficha Médica:</label>
+                <input type="date" id="socio-ficha-venc" required>
+              </div>
+
+              <div class="form-group">
+                <label>Tutor / Contacto Emergencia:</label>
+                <input type="text" id="socio-tutor-nombre" placeholder="Ej: Juan Rodríguez (Padre)">
+              </div>
+              <div class="form-group">
+                <label>Teléfono Emergencia (WhatsApp):</label>
+                <input type="tel" id="socio-tutor-tel" placeholder="Ej: 099000111">
+              </div>
+
+              <div class="form-group span-full">
+                <label>Foto de Perfil / Carnet:</label>
+                <input type="file" id="socio-foto-input" accept="image/*">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-success" id="btn-guardar-socio">Guardar Socio</button>
+              <button type="button" class="btn btn-secondary" id="btn-cancelar-socio">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="contenedor-padron-categorias"></div>
+      </section>
+
+      <!-- 3. CUENTA CORRIENTE -->
+      <section id="sec-cuenta-corriente" class="content-section">
+        <div class="section-header">
+          <div>
+            <h2>Cuenta Corriente & Deudas</h2>
+            <p class="section-desc">Monitoreo de saldos pendientes y morosidad por socio.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-export" onclick="exportarDeudoresExcel()">Exportar Excel</button>
+            <button class="btn btn-export-pdf" onclick="exportarAPDF('tabla-cuentas-container', 'ClubSoft_Estado_Deudores')">Exportar PDF</button>
+          </div>
+        </div>
+
+        <div class="card" id="tabla-cuentas-container">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Socio</th>
+                  <th>Categoría</th>
+                  <th>Deuda Acumulada</th>
+                  <th>Debe Desde</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-cuentas-corrientes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. PAGOS Y RECIBOS -->
+      <section id="sec-pagos" class="content-section">
+        <div class="card">
+          <h2>Cobranza y Emisión de Recibos</h2>
+          <p class="section-desc">Registrar cobros y consultar historial de recibos emitidos.</p>
+          
+          <form id="pago-form" class="form-grid" style="margin-bottom: 2rem;">
+            <div class="form-group">
+              <label>N° Socio / Nombre:</label>
+              <select id="pago-socio-select" required></select>
+            </div>
+            <div class="form-group">
+              <label>Monto a Cobrar ($):</label>
+              <input type="number" id="pago-monto" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>Medio de Pago:</label>
+              <select id="pago-medio" required>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                <option value="Mercado Pago">Mercado Pago</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <button type="submit" class="btn btn-success">Registrar Pago y Recibo</button>
+            </div>
+          </form>
+
+          <h3>Historial de Recibos</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>N° Recibo</th>
+                  <th>Socio</th>
+                  <th>Monto</th>
+                  <th>Medio</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-recibos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. CAJA -->
+      <section id="sec-caja" class="content-section">
+        <div class="section-header">
+          <div>
+            <h2>Caja Chica y Movimientos</h2>
+            <p class="section-desc">Ingresos y egresos operativos del club.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-export" onclick="exportarCajaExcel()">Exportar Excel</button>
+            <button class="btn btn-export-pdf" onclick="exportarAPDF('tabla-caja-container', 'ClubSoft_Movimientos_Caja')">Exportar PDF</button>
+          </div>
+        </div>
+
+        <div class="card" id="tabla-caja-container">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Concepto</th>
+                  <th>Monto</th>
+                  <th>Detalle</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-caja"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. GENERADOR DE DÉBITOS -->
+      <section id="sec-debitos" class="content-section">
+        <div class="card">
+          <h2>Generación Automática de Cuotas Mensuales</h2>
+          <p class="section-desc">Genera automáticamente el cargo mensual en la cuenta corriente de todos los socios activos utilizando los aranceles configurados.</p>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Mes de Emisión:</label>
+              <input type="month" id="debit-mes" required>
+            </div>
+            <div class="form-group">
+              <label>Modo de Emisión:</label>
+              <select id="debit-modo">
+                <option value="categoria">Aranceles por Categoría (Configurados)</option>
+                <option value="fijo">Monto Único Fijo para Todos</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-generar-debitos" style="margin-top: 1rem;">Generar Cuotas para todos los socios activos</button>
+        </div>
+      </section>
+
+      <!-- 7. CONFIGURACIÓN TOTAL REESTRUCTURADA -->
+      <section id="sec-configuracion" class="content-section">
+        <div class="card">
+          <h2>Configuración Estructura del Club</h2>
+          <p class="section-desc">Parámetros generales de categorías, infraestructura, convenios y permisos de ClubSoft.</p>
+          
+          <div class="reportes-grid">
+            <div class="report-box">
+              <h4>Categorías y Aranceles</h4>
+              <p>Valores de cuota mensual por divisional (U8 a Senior) y grupo familiar.</p>
+              <button class="btn btn-primary" id="btn-gestionar-aranceles">Gestionar Aranceles</button>
+            </div>
+
+            <div class="report-box">
+              <h4>Infraestructura y Canchas</h4>
+              <p>Gestión de instalaciones, gimnasios y tarifas de alquiler.</p>
+              <button class="btn btn-secondary" disabled>Próximamente</button>
+            </div>
+
+            <div class="report-box">
+              <h4>Identidad e Impresión</h4>
+              <p>Logo oficial, datos fiscales y encabezado de recibos.</p>
+              <button class="btn btn-secondary" disabled>Próximamente</button>
+            </div>
+
+            <div class="report-box">
+              <h4>Comunicaciones & WhatsApp</h4>
+              <p>Plantillas de cobro y alertas de ficha médica.</p>
+              <button class="btn btn-secondary" disabled>Próximamente</button>
+            </div>
+
+            <div class="report-box">
+              <h4>Convenios y Becas</h4>
+              <p>Definición de socios honorarios, vitalicios y descuentos.</p>
+              <button class="btn btn-secondary" disabled>Próximamente</button>
+            </div>
+
+            <div class="report-box">
+              <h4>Usuarios y Permisos</h4>
+              <p>Roles de secretaría, cobradores y administración.</p>
+              <button class="btn btn-secondary" disabled>Próximamente</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO INTERACTIVO: GESTIÓN DE CATEGORÍAS Y ARANCELES -->
+        <div class="card form-card" id="card-aranceles-panel" style="display: none;">
+          <h3>Gestión de Aranceles por Categoría</h3>
+          <p class="section-desc">Ajusta los valores mensuales oficiales por categoría. Estos valores se aplicarán al generar los débitos de los socios.</p>
+
+          <form id="form-aranceles">
+            <div class="form-grid" id="grid-aranceles-inputs">
+              <!-- Se genera dinámicamente en JS -->
+            </div>
+
+            <div class="aranceles-extra-box" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+              <h4>Descuentos y Reglas Especiales</h4>
+              <div class="form-grid" style="margin-top: 0.8rem;">
+                <div class="form-group">
+                  <label>Descuento Grupo Familiar (2° o más familiares):</label>
+                  <select id="descuento-familiar">
+                    <option value="0">Sin Descuento (0%)</option>
+                    <option value="10">10% de Descuento</option>
+                    <option value="15">15% de Descuento</option>
+                    <option value="20" selected>20% de Descuento</option>
+                    <option value="25">25% de Descuento</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 1.5rem;">
+              <button type="submit" class="btn btn-success">Guardar Aranceles</button>
+              <button type="button" class="btn btn-secondary" id="btn-cerrar-aranceles">Cerrar</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <p>© 2026 ClubSoft - Todos los derechos reservados ClubSoft</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
