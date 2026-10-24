@@ -13,7 +13,15 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <!-- Librería para exportar a PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
+  <!-- Librería de Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Inicialización de la conexión con Supabase -->
+  <script>
+    const SUPABASE_URL = 'https://xjhsoavnipjdmcwjrctl.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqaHNvYXZuaXBqZG1jd2pyY3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3OTQ5MjAsImV4cCI6MjEwODM3MDkyMH0.Hgy_c13lNPvQsvGsDsd8kPJLC-OvJYOLcWyML40r2Ak';
+
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>

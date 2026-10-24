@@ -1,8 +1,16 @@
-
 // ======================================================
 // CLUBSOFT - SISTEMA DE GESTIÓN DE CLUBES DEPORTIVOS
-// Archivo: app.js
+// Archivo: app.js (Conexión con Supabase)
 // ======================================================
+
+// Credenciales de tu proyecto en Supabase
+const SUPABASE_URL = 'https://xjhsoavnipjdmcwjrctl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqaHNvYXZuaXBqZG1jd2pyY3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3OTQ5MjAsImV4cCI6MjEwODM3MDkyMH0.Hgy_c13lNPvQsvGsDsd8kPJLC-OvJYOLcWyML40r2Ak';
+
+// Inicializar la conexión con Supabase (soporta reconexión)
+const _supabase = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 // Avatar por defecto si el socio no sube foto
 const AVATAR_DEFAULT = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
@@ -18,19 +26,8 @@ const CATEGORIAS_ORDENADAS = [
   "MAYORES FEM", "SENIOR"
 ];
 
-// Leer datos guardados de forma segura
-function leerDatosLocales(clave, valorPredeterminado) {
-  try {
-    const datos = localStorage.getItem(clave);
-    return datos ? JSON.parse(datos) : valorPredeterminado;
-  } catch (error) {
-    console.error("No se pudieron leer los datos:", clave, error);
-    return valorPredeterminado;
-  }
-}
-
 // Aranceles predeterminados
-let aranceles = leerDatosLocales("clubsoft_aranceles", {
+let aranceles = {
   "U8": 1000,
   "U10": 1100,
   "U12 M": 1200,
@@ -44,25 +41,85 @@ let aranceles = leerDatosLocales("clubsoft_aranceles", {
   "MAYORES MASC": 1800,
   "MAYORES FEM": 1800,
   "SENIOR": 1500
-});
+};
 
-let socios = leerDatosLocales("clubsoft_socios", []);
-let recibos = leerDatosLocales("clubsoft_recibos", []);
-let movimientosCaja = leerDatosLocales("clubsoft_caja", []);
+let socios = [];
+let recibos = [];
+let movimientosCaja = [];
 let fotoCargadaBase64 = "";
 
-// Guardar todos los datos en el navegador
-function guardarDatosLocales() {
+// ======================================================
+// CARGA DE DATOS DESDE SUPABASE
+// ======================================================
+
+async function cargarDatosDesdeSupabase() {
+  if (!_supabase) {
+    console.error("Supabase no está disponible.");
+    return;
+  }
+
   try {
-    localStorage.setItem("clubsoft_socios", JSON.stringify(socios));
-    localStorage.setItem("clubsoft_recibos", JSON.stringify(recibos));
-    localStorage.setItem("clubsoft_caja", JSON.stringify(movimientosCaja));
-    localStorage.setItem("clubsoft_aranceles", JSON.stringify(aranceles));
-    return true;
+    // 1. Cargar Socios desde la tabla 'Socios'
+    const { data: dataSocios, error: errSocios } = await _supabase
+      .from('Socios')
+      .select('*');
+
+    if (errSocios) {
+      console.error("Error al cargar socios:", errSocios);
+    } else if (dataSocios) {
+      socios = dataSocios.map(s => ({
+        num: s.num || s.id,
+        nombre: s.nombre || "",
+        ci: s.ci || "-",
+        estado: s.estado || "Activo",
+        fechaNac: s.fechaNac || "",
+        categoria: s.categoria || "SENIOR",
+        telefono: s.telefono || "-",
+        cobrador: s.cobrador || "Cobrador Secretaría",
+        fichaVenc: s.fichaVenc || "",
+        tutorNombre: s.tutorNombre || "-",
+        tutorTel: s.tutorTel || "-",
+        foto: s.foto || AVATAR_DEFAULT,
+        deuda: parseFloat(s.deuda) || 0,
+        desde: s.desde || "-"
+      }));
+    }
+
+    // 2. Cargar Recibos desde la tabla 'pagos'
+    const { data: dataPagos, error: errPagos } = await _supabase
+      .from('pagos')
+      .select('*');
+
+    if (errPagos) {
+      console.error("Error al cargar pagos:", errPagos);
+    } else if (dataPagos) {
+      recibos = dataPagos.map(p => ({
+        id: p.nro_recibo || p.id,
+        socio: p.socio || "",
+        monto: parseFloat(p.monto) || 0,
+        medio: p.medio || "Efectivo",
+        fecha: p.fecha || ""
+      }));
+    }
+
+    // 3. Cargar Movimientos de Caja desde la tabla 'caja'
+    const { data: dataCaja, error: errCaja } = await _supabase
+      .from('caja')
+      .select('*');
+
+    if (errCaja) {
+      console.error("Error al cargar caja:", errCaja);
+    } else if (dataCaja) {
+      movimientosCaja = dataCaja.map(c => ({
+        tipo: c.tipo || "Ingreso",
+        concepto: c.concepto || "",
+        monto: parseFloat(c.monto) || 0,
+        detalle: c.detalle || ""
+      }));
+    }
+
   } catch (error) {
-    console.error("No se pudieron guardar los datos:", error);
-    alert("No se pudieron guardar los datos. Puede que el navegador no tenga espacio suficiente.");
-    return false;
+    console.error("Error general de conexión con Supabase:", error);
   }
 }
 
@@ -114,11 +171,11 @@ function verificarSesionLocal() {
   return localStorage.getItem("clubsoft_logged_in") === "true";
 }
 
-function inicializarApp() {
+async function inicializarApp() {
   if (verificarSesionLocal()) {
     if (loginScreen) loginScreen.style.display = "none";
     if (appScreen) appScreen.style.display = "block";
-    renderizarTodo();
+    await renderizarTodo();
   } else {
     if (loginScreen) loginScreen.style.display = "flex";
     if (appScreen) appScreen.style.display = "none";
@@ -129,7 +186,7 @@ document.addEventListener("DOMContentLoaded", inicializarApp);
 
 // Inicio de sesión de demostración
 if (loginForm) {
-  loginForm.addEventListener("submit", function (e) {
+  loginForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const usuario = document.getElementById("login-user").value.trim().toLowerCase();
@@ -142,7 +199,7 @@ if (loginForm) {
       if (loginScreen) loginScreen.style.display = "none";
       if (appScreen) appScreen.style.display = "block";
 
-      renderizarTodo();
+      await renderizarTodo();
     } else if (loginError) {
       loginError.style.display = "block";
     }
@@ -274,7 +331,6 @@ function obtenerEstadoFichaMedica(fechaVencimiento) {
     return { texto: "Sin Registro", badge: "badge-vencido" };
   }
 
-  // Comparar solo fechas, evitando problemas por la hora del día
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
@@ -302,15 +358,10 @@ function obtenerEstadoFichaMedica(fechaVencimiento) {
 // ======================================================
 
 function renderizarDashboard() {
-  const activos = socios.filter(function (socio) {
-    return socio.estado === "Activo";
-  }).length;
+  const activos = socios.filter(s => s.estado === "Activo").length;
+  const deudores = socios.filter(s => (parseFloat(s.deuda) || 0) > 0).length;
 
-  const deudores = socios.filter(function (socio) {
-    return (parseFloat(socio.deuda) || 0) > 0;
-  }).length;
-
-  const ingresos = recibos.reduce(function (total, recibo) {
+  const ingresos = recibos.reduce((total, recibo) => {
     return total + (parseFloat(recibo.monto) || 0);
   }, 0);
 
@@ -464,13 +515,12 @@ if (inputBuscarSocio) {
 }
 
 // ======================================================
-// IMPORTAR SOCIOS DESDE EXCEL O CSV
+// IMPORTAR SOCIOS DESDE EXCEL O CSV A SUPABASE
 // ======================================================
 
 if (btnImportarExcel && cardExcelImport) {
   btnImportarExcel.addEventListener("click", function () {
     const estaOculto = getComputedStyle(cardExcelImport).display === "none";
-
     cardExcelImport.style.display = estaOculto ? "block" : "none";
 
     if (estaOculto) {
@@ -522,7 +572,7 @@ if (inputExcelFile) {
 
     const lector = new FileReader();
 
-    lector.onload = function (evento) {
+    lector.onload = async function (evento) {
       try {
         const datos = new Uint8Array(evento.target.result);
         const libro = XLSX.read(datos, { type: "array" });
@@ -532,7 +582,7 @@ if (inputExcelFile) {
 
         let contador = 0;
 
-        filas.forEach(function (fila) {
+        for (const fila of filas) {
           const numeroExistente = parseInt(fila["Número"], 10);
           const numeroSocio = Number.isFinite(numeroExistente) && numeroExistente > 0
             ? numeroExistente
@@ -565,32 +615,20 @@ if (inputExcelFile) {
             desde: "-"
           };
 
-          const indice = socios.findIndex(function (socio) {
-            return Number(socio.num) === numeroSocio;
-          });
-
-          if (indice >= 0) {
-            // Conservar deuda, fecha de deuda y foto del socio existente
-            socioNuevo.deuda = parseFloat(socios[indice].deuda) || 0;
-            socioNuevo.desde = socios[indice].desde || "-";
-            socioNuevo.foto = socios[indice].foto || AVATAR_DEFAULT;
-            socios[indice] = { ...socios[indice], ...socioNuevo };
-          } else {
-            socios.push(socioNuevo);
+          if (_supabase) {
+            await _supabase.from('Socios').upsert([socioNuevo]);
           }
 
           contador++;
-        });
+        }
 
-        guardarDatosLocales();
-
-        alert("Se procesaron " + contador + " socios correctamente.");
+        alert("Se procesaron e importaron " + contador + " socios correctamente a la base de datos.");
 
         if (cardExcelImport) cardExcelImport.style.display = "none";
         inputExcelFile.value = "";
         if (excelFilename) excelFilename.textContent = "Ningún archivo seleccionado";
 
-        renderizarTodo();
+        await renderizarTodo();
       } catch (error) {
         console.error(error);
         alert("Error al procesar el archivo: " + error.message);
@@ -608,7 +646,6 @@ if (inputExcelFile) {
 function convertirFechaExcel(valor) {
   if (!valor) return "";
 
-  // Excel puede entregar fechas como números
   if (typeof valor === "number" && typeof XLSX !== "undefined") {
     const fecha = XLSX.SSF.parse_date_code(valor);
     if (fecha) {
@@ -683,7 +720,7 @@ function renderizarFormularioAranceles() {
 }
 
 if (formAranceles) {
-  formAranceles.addEventListener("submit", function (e) {
+  formAranceles.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     CATEGORIAS_ORDENADAS.forEach(function (categoria) {
@@ -695,17 +732,15 @@ if (formAranceles) {
       }
     });
 
-    guardarDatosLocales();
-
     alert("Aranceles actualizados correctamente.");
 
     if (cardArancelesPanel) cardArancelesPanel.style.display = "none";
-    renderizarTodo();
+    await renderizarTodo();
   });
 }
 
 // ======================================================
-// ALTA Y EDICIÓN DE SOCIOS
+// ALTA Y EDICIÓN DE SOCIOS (CONECTADO A SUPABASE)
 // ======================================================
 
 const btnNuevoSocio = document.getElementById("btn-nuevo-socio");
@@ -738,7 +773,7 @@ if (btnCancelarSocio && socioForm) {
 }
 
 if (socioForm) {
-  socioForm.addEventListener("submit", function (e) {
+  socioForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const idOriginal = socioIdOriginalInput ? socioIdOriginalInput.value : "";
@@ -789,24 +824,25 @@ if (socioForm) {
       desde: socioExistente ? (socioExistente.desde || "-") : "-"
     };
 
-    if (socioExistente) {
-      socios = socios.filter(function (socio) {
-        return Number(socio.num) !== Number(idOriginal);
-      });
+    if (_supabase) {
+      const { error } = await _supabase
+        .from('Socios')
+        .upsert([socioNuevo]);
+
+      if (error) {
+        alert("Error al guardar socio en Supabase: " + error.message);
+        return;
+      }
     }
 
-    socios.push(socioNuevo);
-
-    guardarDatosLocales();
-
-    alert("Socio guardado correctamente.");
+    alert("Socio guardado correctamente en la base de datos.");
 
     socioForm.reset();
     fotoCargadaBase64 = "";
 
     if (cardSocioForm) cardSocioForm.style.display = "none";
 
-    renderizarTodo();
+    await renderizarTodo();
   });
 }
 
@@ -842,7 +878,7 @@ window.prepararEdicionSocio = function (numeroSocio) {
   }
 };
 
-window.eliminarSocio = function (numeroSocio) {
+window.eliminarSocio = async function (numeroSocio) {
   const socio = socios.find(function (elemento) {
     return Number(elemento.num) === Number(numeroSocio);
   });
@@ -856,12 +892,19 @@ window.eliminarSocio = function (numeroSocio) {
 
   if (!confirmar) return;
 
-  socios = socios.filter(function (elemento) {
-    return Number(elemento.num) !== Number(numeroSocio);
-  });
+  if (_supabase) {
+    const { error } = await _supabase
+      .from('Socios')
+      .delete()
+      .eq('num', numeroSocio);
 
-  guardarDatosLocales();
-  renderizarTodo();
+    if (error) {
+      alert("Error al eliminar socio de Supabase: " + error.message);
+      return;
+    }
+  }
+
+  await renderizarTodo();
 };
 
 // ======================================================
@@ -900,18 +943,18 @@ function renderizarCuentaCorriente() {
   });
 }
 
-window.cobrarDeudaCompleta = function (numeroSocio) {
+window.cobrarDeudaCompleta = async function (numeroSocio) {
   const socio = socios.find(function (elemento) {
     return Number(elemento.num) === Number(numeroSocio);
   });
 
   if (!socio || (parseFloat(socio.deuda) || 0) <= 0) return;
 
-  procesarCobroSocio(socio, parseFloat(socio.deuda), "Efectivo");
+  await procesarCobroSocio(socio, parseFloat(socio.deuda), "Efectivo");
 };
 
 // ======================================================
-// PAGOS Y RECIBOS
+// PAGOS Y RECIBOS (CONECTADO A SUPABASE)
 // ======================================================
 
 function renderizarPagos() {
@@ -975,7 +1018,7 @@ if (pagoSocioSelect) {
 }
 
 if (pagoForm) {
-  pagoForm.addEventListener("submit", function (e) {
+  pagoForm.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const numero = parseInt(pagoSocioSelect.value, 10);
@@ -1006,43 +1049,52 @@ if (pagoForm) {
       return;
     }
 
-    procesarCobroSocio(socio, monto, medio);
+    await procesarCobroSocio(socio, monto, medio);
     pagoForm.reset();
     actualizarMontoSugerido();
   });
 }
 
-function procesarCobroSocio(socio, monto, medio) {
+async function procesarCobroSocio(socio, monto, medio) {
   const deudaActual = parseFloat(socio.deuda) || 0;
   const montoCobrado = Math.min(deudaActual, parseFloat(monto) || 0);
 
   if (montoCobrado <= 0) return;
 
-  socio.deuda = Math.max(0, deudaActual - montoCobrado);
+  const nuevaDeuda = Math.max(0, deudaActual - montoCobrado);
+  const nuevoDesde = nuevaDeuda === 0 ? "-" : socio.desde;
+  const fechaHoy = new Date().toLocaleDateString("es-UY");
 
-  if (socio.deuda === 0) {
-    socio.desde = "-";
+  if (_supabase) {
+    // 1. Actualizar deuda del socio
+    await _supabase
+      .from('Socios')
+      .update({ deuda: nuevaDeuda, desde: nuevoDesde })
+      .eq('num', socio.num);
+
+    // 2. Insertar pago en la tabla 'pagos'
+    await _supabase
+      .from('pagos')
+      .insert([{
+        socio: socio.nombre,
+        monto: montoCobrado,
+        medio: medio,
+        fecha: fechaHoy
+      }]);
+
+    // 3. Insertar movimiento en la tabla 'caja'
+    await _supabase
+      .from('caja')
+      .insert([{
+        fecha: new Date().toISOString().split('T')[0],
+        tipo: 'Ingreso',
+        concepto: 'Cobro de Cuota',
+        monto: montoCobrado,
+        detalle: 'Pago de ' + socio.nombre
+      }]);
   }
 
-  const reciboId = Date.now();
-
-  recibos.push({
-    id: reciboId,
-    socio: socio.nombre,
-    monto: montoCobrado,
-    medio: medio,
-    fecha: new Date().toLocaleDateString("es-UY")
-  });
-
-  movimientosCaja.push({
-    tipo: "Ingreso",
-    concepto: "Recibo #" + reciboId,
-    monto: montoCobrado,
-    detalle: "Pago de " + socio.nombre
-  });
-
-  guardarDatosLocales();
-  renderizarTodo();
+  await renderizarTodo();
 }
 
 // ======================================================
@@ -1071,13 +1123,13 @@ function renderizarCaja() {
 }
 
 // ======================================================
-// GENERAR DÉBITOS MENSUALES
+// GENERAR DÉBITOS MENSUALES (CONECTADO A SUPABASE)
 // ======================================================
 
 const btnGenerarDebitos = document.getElementById("btn-generar-debitos");
 
 if (btnGenerarDebitos) {
-  btnGenerarDebitos.addEventListener("click", function () {
+  btnGenerarDebitos.addEventListener("click", async function () {
     const entradaMes = document.getElementById("debit-mes");
     const entradaModo = document.getElementById("debit-modo");
 
@@ -1086,14 +1138,6 @@ if (btnGenerarDebitos) {
 
     if (!mesSeleccionado) {
       alert("Seleccioná el mes para generar las cuotas.");
-      return;
-    }
-
-    const claveMes = "clubsoft_debitos_" + mesSeleccionado;
-    const mesesGenerados = leerDatosLocales("clubsoft_meses_debitos", []);
-
-    if (mesesGenerados.includes(mesSeleccionado)) {
-      alert("Ya se generaron los débitos de " + mesSeleccionado + ". No se repetirán.");
       return;
     }
 
@@ -1114,33 +1158,42 @@ if (btnGenerarDebitos) {
 
     let cantidad = 0;
 
-    socios.forEach(function (socio) {
-      if (socio.estado !== "Activo") return;
+    for (const socio of socios) {
+      if (socio.estado !== "Activo") continue;
 
       const cuota = modo === "fijo"
         ? montoFijo
         : (parseFloat(aranceles[socio.categoria]) || 0);
 
-      if (cuota <= 0) return;
+      if (cuota <= 0) continue;
 
-      socio.deuda = (parseFloat(socio.deuda) || 0) + cuota;
+      const nuevaDeuda = (parseFloat(socio.deuda) || 0) + cuota;
+      const nuevoDesde = (!socio.desde || socio.desde === "-") ? mesSeleccionado : socio.desde;
 
-      if (!socio.desde || socio.desde === "-") {
-        socio.desde = mesSeleccionado;
+      if (_supabase) {
+        await _supabase
+          .from('Socios')
+          .update({ deuda: nuevaDeuda, desde: nuevoDesde })
+          .eq('num', socio.num);
       }
 
       cantidad++;
-    });
+    }
 
-    mesesGenerados.push(mesSeleccionado);
-    localStorage.setItem("clubsoft_meses_debitos", JSON.stringify(mesesGenerados));
-    localStorage.setItem(claveMes, JSON.stringify({ cantidad: cantidad, fecha: new Date().toISOString() }));
-
-    guardarDatosLocales();
+    // Registrar proceso en 'historial_debitos'
+    if (_supabase) {
+      await _supabase
+        .from('historial_debitos')
+        .insert([{
+          mes_emision: mesSeleccionado,
+          modo_emision: modo === "fijo" ? "Monto Fijo" : "Aranceles por Categoría",
+          estado_proceso: "Completado"
+        }]);
+    }
 
     alert("Se generaron las cuotas de " + mesSeleccionado + " para " + cantidad + " socios activos.");
 
-    renderizarTodo();
+    await renderizarTodo();
   });
 }
 
@@ -1249,10 +1302,11 @@ window.exportarAPDF = function (idContenedor, nombreArchivo) {
 };
 
 // ======================================================
-// ACTUALIZAR TODAS LAS PANTALLAS
+// ACTUALIZAR TODAS LAS PANTALLAS CON SUPABASE
 // ======================================================
 
-function renderizarTodo() {
+async function renderizarTodo() {
+  await cargarDatosDesdeSupabase();
   renderizarDashboard();
   renderizarPadron();
   renderizarCuentaCorriente();
